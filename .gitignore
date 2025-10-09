@@ -1,0 +1,48 @@
+# Binários para programas específicos da arquitetura
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Arquivos de teste
+*.test
+
+# Saída de cobertura de testes
+*.out
+
+# Arquivos de dependências Go
+go.sum
+
+# Arquivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Arquivos de log
+*.log
+
+# Arquivos de ambiente
+.env
+.env.local
+
+# Arquivos temporários
+tmp/
+temp/
+
+# Binários compilados
+/bin/
+/build/
+/dist/
+
+# Cache de módulos Go
+/go/pkg/mod/
+
+# Air (hot reload)
+.air.toml
+tmp/
