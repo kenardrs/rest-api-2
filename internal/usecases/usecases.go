@@ -25,7 +25,7 @@ func (u UseCases) GetAll() []models.User {
 	return users
 }
 
-func (u UseCases) Add(newUser models.User) (uuid.UUID, error) {
+func (u UseCases) Add(newUser models.CreateUserRequest) (uuid.UUID, error) {
 	exists := u.repos.User.EmailExists(newUser.Email)
 	if exists {
 		slog.Error("this user already exists", "email", newUser.Email)

@@ -13,7 +13,7 @@ func New() *Users {
 }
 
 func (u *Users) GetAll() []models.User {
-	return []models.User{}
+	return u.users
 }
 
 func (u *Users) EmailExists(email string) bool {
