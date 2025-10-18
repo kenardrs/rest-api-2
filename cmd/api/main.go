@@ -10,6 +10,7 @@ import (
 	"rest-api-2/internal/handlers"
 	"rest-api-2/internal/repositories"
 	"rest-api-2/internal/usecases"
+	"rest-api-2/internal/version"
 	"syscall"
 )
 
@@ -27,7 +28,7 @@ func main() {
 	}
 	defer database.Close(db)
 
-	slog.Info("Starting REST API server", "version", "1.0.0")
+	slog.Info("Starting REST API server", "version", version.Info())
 
 	// Inicializar camadas da Clean Architecture
 	repos := repositories.New(db)
