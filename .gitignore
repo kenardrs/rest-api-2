@@ -12,7 +12,7 @@
 *.out
 
 # Arquivos de dependências Go
-go.sum
+# NOTA: go.sum DEVE ser versionado para reprodutibilidade!
 
 # Arquivos de IDE
 .vscode/
