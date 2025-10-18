@@ -1,0 +1,108 @@
+# GitHub Actions para Release Automática
+name: 🚀 Release
+
+# Executar quando criar uma tag de versão
+on:
+  push:
+    tags:
+      - 'v*'  # Executa para tags como v1.0.0, v1.2.0, etc.
+
+env:
+  GO_VERSION: '1.25'
+
+jobs:
+  # Job para criar release automática
+  release:
+    name: 🚀 Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: 🐹 Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    # Compilar para múltiplas plataformas
+    - name: 🔨 Build all platforms
+      run: |
+        # Criar diretório para releases
+        mkdir -p releases
+        
+        # Obter informações de versão
+        VERSION=$(git describe --tags --always)
+        BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        GIT_COMMIT=$(git rev-parse HEAD)
+        GO_VERSION=$(go version | awk '{print $3}')
+        
+        # LDFLAGS comum
+        LDFLAGS="-X rest-api-2/internal/version.Version=$VERSION \
+                 -X rest-api-2/internal/version.BuildDate=$BUILD_DATE \
+                 -X rest-api-2/internal/version.GitCommit=$GIT_COMMIT \
+                 -X rest-api-2/internal/version.GoVersion=$GO_VERSION"
+        
+        # Compilar para diferentes plataformas
+        echo "🔨 Building for Linux AMD64..."
+        GOOS=linux GOARCH=amd64 go build -ldflags "$LDFLAGS" -o releases/rest-api-2-linux-amd64 cmd/api/main.go
+        
+        echo "🔨 Building for Linux ARM64..."
+        GOOS=linux GOARCH=arm64 go build -ldflags "$LDFLAGS" -o releases/rest-api-2-linux-arm64 cmd/api/main.go
+        
+        echo "🔨 Building for macOS AMD64..."
+        GOOS=darwin GOARCH=amd64 go build -ldflags "$LDFLAGS" -o releases/rest-api-2-macos-amd64 cmd/api/main.go
+        
+        echo "🔨 Building for macOS ARM64 (M1/M2)..."
+        GOOS=darwin GOARCH=arm64 go build -ldflags "$LDFLAGS" -o releases/rest-api-2-macos-arm64 cmd/api/main.go
+        
+        echo "🔨 Building for Windows AMD64..."
+        GOOS=windows GOARCH=amd64 go build -ldflags "$LDFLAGS" -o releases/rest-api-2-windows-amd64.exe cmd/api/main.go
+        
+        echo "✅ All binaries built successfully!"
+        ls -la releases/
+
+    # Criar checksums para verificação de integridade
+    - name: 🔐 Generate checksums
+      run: |
+        cd releases
+        sha256sum * > checksums.txt
+        echo "📝 Checksums generated:"
+        cat checksums.txt
+
+    # Criar release no GitHub
+    - name: 🚀 Create GitHub Release
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "releases/*"
+        body: |
+          ## 🚀 Release ${{ github.ref_name }}
+          
+          ### 📝 Changes
+          <!-- Adicionar manualmente as mudanças ou usar conventional commits -->
+          
+          ### 📦 Downloads
+          - **Linux AMD64**: `rest-api-2-linux-amd64`
+          - **Linux ARM64**: `rest-api-2-linux-arm64` 
+          - **macOS AMD64**: `rest-api-2-macos-amd64`
+          - **macOS ARM64**: `rest-api-2-macos-arm64` (M1/M2)
+          - **Windows AMD64**: `rest-api-2-windows-amd64.exe`
+          
+          ### 🔐 Verification
+          Download `checksums.txt` para verificar a integridade dos arquivos:
+          ```bash
+          sha256sum -c checksums.txt
+          ```
+          
+          ### 🚀 Quick Start
+          ```bash
+          # Download para seu sistema
+          wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/rest-api-2-linux-amd64
+          chmod +x rest-api-2-linux-amd64
+          ./rest-api-2-linux-amd64
+          ```
+        draft: false
+        prerelease: false
+        token: ${{ secrets.GITHUB_TOKEN }}
