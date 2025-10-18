@@ -23,6 +23,7 @@ Uma REST API robusta para gerenciamento de usuários construída em Go, seguindo
 - ✅ Respostas padronizadas de sucesso e erro
 - ✅ **Configuração via variáveis de ambiente**
 - ✅ **Graceful shutdown** com limpeza de recursos
+- ✅ **Sistema de versionamento completo** (Git tags + Runtime + Build info)
 
 ## 🏗️ Arquitetura
 
@@ -332,6 +333,11 @@ rest-api-2/
     └── models/
         ├── users.go             # Modelos relacionados a usuários
         └── errors.go            # Modelos de resposta de erro
+
+migrations/                      # Scripts SQL para estrutura do banco
+.env                            # Variáveis de ambiente (desenvolvimento)  
+Makefile                        # Build automation e versionamento
+docker-compose.yml              # Documentação do PostgreSQL
 ```
 
 ## 🛠️ Desenvolvimento
@@ -339,13 +345,29 @@ rest-api-2/
 ### Executar a aplicação
 
 ```bash
-# 1. Iniciar o servidor da API
-go run cmd/api/main.go
-# Servidor disponível em http://localhost:3000
+# Opção 1: Usando Makefile (Recomendado)
+make run              # Executa com informações de versão
+make build            # Build com versão automática
+make version          # Ver informações de build
 
-# 2. Em outro terminal, testar com o cliente
-go run cmd/client/main.go
-# Cliente faz requisição POST e testa a API
+# Opção 2: Comandos Go diretos
+go run cmd/api/main.go     # Servidor em http://localhost:3000
+go run cmd/client/main.go  # Cliente de teste
+```
+
+### Comandos Makefile
+
+```bash
+# Build e execução
+make build            # Compila com versão completa
+make run              # Executa com versão atual
+make clean            # Limpa binários
+
+# Informações
+make version          # Mostra versão, commit, data de build
+
+# Testes e qualidade
+make test             # Executa testes
 ```
 
 ### Executar em modo de desenvolvimento
@@ -461,7 +483,92 @@ docker exec -it <container_name> psql -U <user> -d <database> -c "\dt"
   - Índices otimizados
   - Connection pooling
 
-## 🏛️ Padrões de Design Utilizados
+## �️ Sistema de Versionamento
+
+A aplicação implementa um **sistema de versionamento de 4 camadas** seguindo as melhores práticas Go:
+
+### **📊 Visão Geral das Camadas**
+
+```
+🏷️ Git Tags     ←→  📝 Código Go    ←→  🔧 Build Time  ←→  🖥️ Runtime
+   v1.1.0           version.go       Makefile        Logs/API
+```
+
+### **1. 🏷️ Git Tags - Versão Oficial**
+```bash
+# Criar nova versão
+git tag -a v1.2.0 -m "Nova funcionalidade"
+git push origin v1.2.0
+
+# Usar em deployment
+git checkout v1.2.0  # Deploy específico
+```
+
+### **2. 📝 Código Go - Versão Runtime**
+```go
+// internal/version/version.go
+package version
+
+const Version = "1.1.0"
+
+func Info() string { return Version }
+func Full() map[string]string { /* detalhes completos */ }
+```
+
+### **3. 🔧 Build Time - Versão Automática**
+```bash
+# Makefile automaticamente injeta:
+make build    # Versão do Git + commit + data
+make version  # Mostra informações de build
+make run      # Executa com versão atual
+```
+
+### **4. 🖥️ Runtime - Versão Dinâmica**
+```bash
+# Nos logs da aplicação:
+INFO Starting REST API server version=v1.1.0
+INFO Build info commit=abc123 date=2025-10-18 go=go1.25.1
+```
+
+### **🎯 Como Usar**
+
+#### **Para Desenvolvimento:**
+```bash
+make version      # Ver informações atuais
+make run          # Executar com versão
+go run cmd/api/main.go  # Executar diretamente
+```
+
+#### **Para Produção:**
+```bash
+make build        # Build otimizado com versão completa
+./bin/api         # Binário com todas as informações
+```
+
+#### **Para Releases:**
+```bash
+# 1. Atualizar versão no código
+vim internal/version/version.go  # Version = "1.2.0"
+
+# 2. Commit e tag
+git add . && git commit -m "bump: version 1.2.0"
+git tag -a v1.2.0 -m "Release v1.2.0"
+git push origin main && git push origin v1.2.0
+
+# 3. Build automático com informações completas
+make build
+```
+
+### **💡 Benefícios de Cada Camada**
+
+| Camada | Vantagem | Caso de Uso |
+|--------|----------|-------------|
+| **🏷️ Git Tags** | Oficial, imutável | Releases, deployment, GitHub |
+| **📝 Código Go** | Sempre disponível | Desenvolvimento, fallback |
+| **🔧 Build Time** | Automático, preciso | CI/CD, produção |
+| **🖥️ Runtime** | Acessível, dinâmico | Logs, debugging, monitoring |
+
+## �🏛️ Padrões de Design Utilizados
 
 ### **Clean Architecture (Arquitetura Limpa)**
 - **Principle**: Dependency Inversion - camadas externas dependem das internas
@@ -574,6 +681,7 @@ DB_CONN_MAX_LIFETIME=300s
 - [x] Validação de email único (via banco)
 - [x] Estrutura de projeto organizada (Go standards)
 - [x] Logging estruturado com slog
+- [x] **Sistema de versionamento completo** (Git tags + Runtime + Build automation)
 
 ### 🔄 **Em Desenvolvimento**
 - [ ] Middleware de logging avançado para requests HTTP
