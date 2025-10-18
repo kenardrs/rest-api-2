@@ -2,7 +2,7 @@ package version
 
 // Application version information
 const (
-	Version   = "1.1.0"
+	Version   = "1.1.1"
 	BuildDate = "2025-10-18"
 )
 
