@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"database/sql"
 	"rest-api-2/internal/models"
 	"rest-api-2/internal/repositories/users"
 )
@@ -13,8 +14,9 @@ type Repositories struct {
 	}
 }
 
-func New() *Repositories {
+// New cria repositórios com conexão PostgreSQL
+func New(db *sql.DB) *Repositories {
 	return &Repositories{
-		User: users.New(),
+		User: users.New(db),
 	}
 }

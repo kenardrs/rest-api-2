@@ -1,21 +1,28 @@
 # REST API 2
 
 [![Go Version](https://img.shields.io/badge/Go-1.25.1-blue.svg)](https://golang.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)](https://postgresql.org)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-Uma REST API simples para gerenciamento de usuários construída em Go, seguindo os princípios da Clean Architecture.
+Uma REST API robusta para gerenciamento de usuários construída em Go, seguindo os princípios da Clean Architecture com **integração completa ao PostgreSQL**.
+
+> 🚀 **v1.1.0** - Agora com persistência em PostgreSQL, connection pooling e configuração via ambiente!
 
 ## 📋 Características
 
 - ✅ Cadastro de usuários com validação de email único
 - ✅ Listagem de todos os usuários
 - ✅ Clean Architecture (handlers → usecases → repositories → models)
-- ✅ Repositório em memória para simplicidade
+- ✅ **Integração com PostgreSQL** para persistência de dados
+- ✅ **Connection pooling** e gerenciamento de recursos
+- ✅ **Migrations automáticas** para estrutura do banco
 - ✅ Geração automática de UUIDs para usuários
-- ✅ Logging estruturado
+- ✅ Logging estruturado com slog
 - ✅ Validação de dados de entrada e tratamento de erros
 - ✅ Cliente HTTP funcional com tratamento de erros
 - ✅ Respostas padronizadas de sucesso e erro
+- ✅ **Configuração via variáveis de ambiente**
+- ✅ **Graceful shutdown** com limpeza de recursos
 
 ## 🏗️ Arquitetura
 
@@ -24,20 +31,28 @@ O projeto segue os princípios da Clean Architecture com as seguintes camadas:
 ```
 cmd/
 ├── api/           # Ponto de entrada da aplicação
-└── client/        # Cliente de exemplo (futuro)
+└── client/        # Cliente de exemplo para testes
 
 internal/
+├── config/        # Configurações e variáveis de ambiente
+├── database/      # Conexão e pool do PostgreSQL
 ├── handlers/      # Camada de apresentação (HTTP handlers)
 ├── usecases/      # Regras de negócio da aplicação
-├── repositories/  # Camada de acesso aos dados
+├── repositories/  # Camada de acesso aos dados (PostgreSQL)
 │   └── users/     # Repositório específico de usuários
 └── models/        # Entidades e DTOs
+
+migrations/        # Scripts SQL para estrutura do banco
+.env              # Variáveis de ambiente (desenvolvimento)
+docker-compose.yml # Documentação do PostgreSQL
 ```
 
 ### Fluxo de Dados
 
 ```
-HTTP Request → Handlers → UseCases → Repositories → Models
+HTTP Request → Handlers → UseCases → Repositories → PostgreSQL
+                                                   ↓
+                                               Models (Data)
 ```
 
 ## 🏛️ Clean Architecture Detalhada
@@ -186,6 +201,45 @@ func TestAddUser_EmailAlreadyExists(t *testing.T) {
 ### Pré-requisitos
 
 - Go 1.25.1 ou superior
+- Docker e Docker Compose
+- PostgreSQL 15+ (ou use o container fornecido)
+- Git
+
+### Setup do Banco de Dados
+
+#### Opção 1: PostgreSQL já existente
+Se você já tem PostgreSQL rodando, ajuste o arquivo `.env`:
+
+```bash
+# .env
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=seu_database
+DB_USER=seu_usuario
+DB_PASSWORD=sua_senha
+DB_SSLMODE=disable
+```
+
+#### Opção 2: Usar Docker
+```bash
+# PostgreSQL via Docker
+docker run -d \
+  --name postgres-rest-api \
+  -e POSTGRES_DB=app_db \
+  -e POSTGRES_USER=app_user \
+  -e POSTGRES_PASSWORD=example \
+  -p 5432:5432 \
+  postgres:16-alpine
+```
+
+### Executar Migrations
+```bash
+# Criar tabelas no banco
+docker exec -i <container_name> psql -U <user> -d <database> < migrations/001_create_users_table.sql
+
+# Exemplo:
+docker exec -i db psql -U app_user -d app_db < migrations/001_create_users_table.sql
+```
 - Git
 
 ### Instalação
@@ -331,9 +385,81 @@ go vet ./...
 golangci-lint run
 ```
 
+## 🔍 Troubleshooting
+
+### **Problemas Comuns**
+
+#### 🔌 **Erro de Conexão com PostgreSQL**
+```bash
+# Erro: "Failed to connect to database"
+# Solução: Verificar se PostgreSQL está rodando
+docker ps | grep postgres
+
+# Verificar logs do container
+docker logs <container_name>
+
+# Testar conexão manual
+docker exec -it <container_name> psql -U <user> -d <database> -c "SELECT 1;"
+```
+
+#### 🗄️ **Tabela não existe**
+```bash
+# Erro: "relation 'users' does not exist"
+# Solução: Executar migration
+docker exec -i <container_name> psql -U <user> -d <database> < migrations/001_create_users_table.sql
+```
+
+#### ⚙️ **Variáveis de ambiente**
+```bash
+# Verificar se .env está sendo carregado
+cat .env
+
+# Verificar variáveis no ambiente
+env | grep DB_
+```
+
+### **Logs da Aplicação**
+
+A aplicação usa `slog` para logging estruturado:
+
+```bash
+# Logs de conexão
+INFO Connecting to database host=localhost port=5432 database=app_db
+INFO Database connection established successfully
+
+# Logs de operação
+INFO User created successfully id=uuid email=user@email.com
+
+# Logs de erro
+ERROR Error inserting user error="duplicate key" user={...}
+```
+
+### **Verificar Saúde do Sistema**
+
+```bash
+# Verificar se API está respondendo
+curl http://localhost:3000/users
+
+# Verificar conexões do PostgreSQL
+docker exec -it <container_name> psql -U <user> -d <database> -c "SELECT count(*) FROM pg_stat_activity;"
+
+# Verificar tabelas criadas
+docker exec -it <container_name> psql -U <user> -d <database> -c "\dt"
+```
+
 ## 📦 Dependências
 
+### **Core Dependencies**
 - [github.com/google/uuid](https://github.com/google/uuid) - Geração de UUIDs
+- [github.com/lib/pq](https://github.com/lib/pq) - Driver PostgreSQL para Go
+- [github.com/joho/godotenv](https://github.com/joho/godotenv) - Carregamento de variáveis de ambiente
+
+### **Banco de Dados**
+- **PostgreSQL 15+** com suporte a:
+  - UUIDs nativos (`gen_random_uuid()`)
+  - Triggers automáticos (`updated_at`)
+  - Índices otimizados
+  - Connection pooling
 
 ## 🏛️ Padrões de Design Utilizados
 
@@ -399,37 +525,72 @@ type ErrorResponse struct {
 
 ## 🔧 Configuração
 
-Atualmente, a aplicação utiliza configurações hardcoded. Futuras versões incluirão:
+A aplicação utiliza configuração baseada em variáveis de ambiente:
 
-- Variáveis de ambiente
-- Arquivo de configuração
-- Configuração de banco de dados
-- Configuração de logging
+### **Arquivo .env (Desenvolvimento)**
+```bash
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=app_db
+DB_USER=app_user
+DB_PASSWORD=example
+DB_SSLMODE=disable
+
+# Application Configuration
+APP_PORT=3000
+APP_ENV=development
+
+# Database Pool Configuration
+DB_MAX_OPEN_CONNS=25
+DB_MAX_IDLE_CONNS=10
+DB_CONN_MAX_LIFETIME=300s
+```
+
+### **Variáveis de Ambiente (Produção)**
+- `DB_HOST` - Host do PostgreSQL
+- `DB_PORT` - Porta do PostgreSQL (padrão: 5432)
+- `DB_NAME` - Nome do banco de dados
+- `DB_USER` - Usuário do banco
+- `DB_PASSWORD` - Senha do banco
+- `DB_SSLMODE` - Modo SSL (disable/require/verify-full)
+- `APP_PORT` - Porta da aplicação (padrão: 3000)
+- `DB_MAX_OPEN_CONNS` - Máximo de conexões abertas (padrão: 25)
+- `DB_MAX_IDLE_CONNS` - Máximo de conexões ociosas (padrão: 10)
+- `DB_CONN_MAX_LIFETIME` - Tempo de vida das conexões (padrão: 5m)
 
 ## 🚧 Roadmap
 
 ### ✅ **Implementado**
 - [x] Endpoints HTTP básicos (GET/POST /users)
+- [x] **Integração completa com PostgreSQL**
+- [x] **Connection pooling e gerenciamento de recursos**
+- [x] **Configuração via variáveis de ambiente (.env)**
+- [x] **Migrations automáticas do banco de dados**
+- [x] **Graceful shutdown com cleanup**
 - [x] Validação de entrada e tratamento de erros
 - [x] Cliente HTTP de exemplo funcional
 - [x] Respostas padronizadas (sucesso e erro)
-- [x] Validação de email único
-- [x] Estrutura de projeto organizada
+- [x] Validação de email único (via banco)
+- [x] Estrutura de projeto organizada (Go standards)
+- [x] Logging estruturado com slog
 
 ### 🔄 **Em Desenvolvimento**
-- [ ] Middleware de logging avançado
-- [ ] Validação mais robusta de dados de entrada
-- [ ] Testes unitários abrangentes
+- [ ] Middleware de logging avançado para requests HTTP
+- [ ] Validação mais robusta de dados de entrada (struct tags)
+- [ ] Testes unitários abrangentes com mocks
+- [ ] Health check endpoint para monitoramento
 
 ### 📋 **Planejado**
-- [ ] Integração com banco de dados (PostgreSQL/MySQL)
 - [ ] Documentação OpenAPI/Swagger
-- [ ] Autenticação e autorização
-- [ ] Paginação para listagem
-- [ ] Dockerização
-- [ ] CI/CD pipeline
-- [ ] Métricas e observabilidade
+- [ ] Autenticação e autorização (JWT)
+- [ ] Paginação para listagem de usuários
+- [ ] Containerização da aplicação (Dockerfile)
+- [ ] CI/CD pipeline (GitHub Actions)
+- [ ] Métricas e observabilidade (Prometheus)
 - [ ] Rate limiting
+- [ ] Backup automático do banco
+- [ ] Ambiente de staging
 - [ ] Cache distribuído
 
 ## 🤝 Contribuindo
