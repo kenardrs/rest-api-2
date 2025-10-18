@@ -12,7 +12,7 @@ on:
 
 # Variáveis de ambiente globais
 env:
-  GO_VERSION: '1.25'
+  GO_VERSION: '1.21'
 
 # Jobs (trabalhos) que serão executados
 jobs:
