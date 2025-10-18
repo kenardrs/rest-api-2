@@ -4,10 +4,12 @@
 run:
   timeout: 5m
   modules-download-mode: readonly
+  go: '1.23'
 
 linters-settings:
   govet:
-    check-shadowing: true
+    # Removido check-shadowing (deprecated)
+    enable-all: true
   
   gocyclo:
     min-complexity: 15
@@ -31,6 +33,7 @@ linters:
     - misspell
     - gofmt
     - goimports
+    - shadow  # Substitui govet.check-shadowing
 
 issues:
   # Excluir alguns arquivos ou diretórios da análise

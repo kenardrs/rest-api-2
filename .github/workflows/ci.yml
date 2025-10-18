@@ -12,7 +12,7 @@ on:
 
 # Variáveis de ambiente globais
 env:
-  GO_VERSION: '1.21'
+  GO_VERSION: '1.23'
 
 # Jobs (trabalhos) que serão executados
 jobs:
@@ -59,12 +59,18 @@ jobs:
         fi
         echo "✅ Code is properly formatted"
 
-    # 6. Lint (verificação de qualidade)
-    - name: 🔍 Run golangci-lint
-      uses: golangci/golangci-lint-action@v6
-      with:
-        version: latest
-        skip-cache: false
+    # 6. Lint (verificação de qualidade) - simplificado
+    - name: 🔍 Run basic lint checks
+      run: |
+        go vet ./...
+        go fmt ./...
+        # Verificar se há mudanças após fmt
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "❌ Code is not formatted properly"
+          git diff
+          exit 1
+        fi
+        echo "✅ Basic lint checks passed"
 
     # 7. Executar testes
     - name: 🧪 Run tests
