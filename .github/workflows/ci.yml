@@ -10,6 +10,11 @@ on:
   # Permite executar manualmente
   workflow_dispatch:
 
+# Permissões necessárias
+permissions:
+  contents: read
+  packages: read
+
 # Variáveis de ambiente globais
 env:
   GO_VERSION: '1.23'

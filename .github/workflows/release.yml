@@ -7,6 +7,11 @@ on:
     tags:
       - 'v*'  # Executa para tags como v1.0.0, v1.2.0, etc.
 
+# Permissões necessárias para o GITHUB_TOKEN
+permissions:
+  contents: write  # Necessário para criar releases
+  packages: write  # Necessário para upload de artifacts
+
 env:
   GO_VERSION: '1.23'
 
@@ -74,16 +79,13 @@ jobs:
 
     # Criar release no GitHub
     - name: 🚀 Create GitHub Release
-      uses: ncipollo/release-action@v1
+      uses: softprops/action-gh-release@v2
       with:
-        artifacts: "releases/*"
+        files: "releases/*"
         body: |
           ## 🚀 Release ${{ github.ref_name }}
           
-          ### 📝 Changes
-          <!-- Adicionar manualmente as mudanças ou usar conventional commits -->
-          
-          ### 📦 Downloads
+          ###  Downloads
           - **Linux AMD64**: `rest-api-2-linux-amd64`
           - **Linux ARM64**: `rest-api-2-linux-arm64` 
           - **macOS AMD64**: `rest-api-2-macos-amd64`
@@ -105,4 +107,3 @@ jobs:
           ```
         draft: false
         prerelease: false
-        token: ${{ secrets.GITHUB_TOKEN }}
